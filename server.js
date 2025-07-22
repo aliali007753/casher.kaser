@@ -71,17 +71,17 @@ app.post('/api/products', async (req, res) => {
 });
 
 app.put('/api/products/:barcode', async (req, res) => {
-    try {
-        const updatedProduct = await Product.findOneAndUpdate(
-            { barcode: req.params.barcode },
-            req.body,
-            { new: true, runValidators: true }
-        );
-        if (!updatedProduct) return res.status(404).send('Product not found.');
-        res.json(updatedProduct);
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
+  try {
+    const updatedProduct = await Product.findOneAndUpdate(
+      { barcode: req.params.barcode },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedProduct) return res.status(404).send('Product not found.');
+    res.json(updatedProduct);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 app.delete('/api/products/:barcode', async (req, res) => {
@@ -101,7 +101,7 @@ app.post('/api/invoices', async (req, res) => {
     await newInvoice.save();
     res.status(201).json(newInvoice);
   } catch (err) {
-     if (err.code === 11000) { // Duplicate key error (invoice ID)
+    if (err.code === 11000) { // Duplicate key error (invoice ID)
       return res.status(409).send('Invoice with this ID already exists.');
     }
     res.status(500).send(err.message);
@@ -109,23 +109,23 @@ app.post('/api/invoices', async (req, res) => {
 });
 
 app.get('/api/invoices', async (req, res) => {
-    const { search } = req.query;
-    let query = {};
-    if (search) {
-        query = {
-            $or: [
-                { id: parseInt(search) || 0 }, // Try to parse as number for invoice ID
-                { customerName: { $regex: search, $options: 'i' } },
-                { customerPhone: { $regex: search, $options: 'i' } }
-            ]
-        };
-    }
-    try {
-        const invoices = await Invoice.find(query).sort({ date: -1 }); // Sort by newest first
-        res.json(invoices);
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
+  const { search } = req.query;
+  let query = {};
+  if (search) {
+    query = {
+      $or: [
+        { id: parseInt(search) || 0 }, // Try to parse as number for invoice ID
+        { customerName: { $regex: search, $options: 'i' } },
+        { customerPhone: { $regex: search, $options: 'i' } }
+      ]
+    };
+  }
+  try {
+    const invoices = await Invoice.find(query).sort({ date: -1 }); // Sort by newest first
+    res.json(invoices);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 app.delete('/api/invoices/:id', async (req, res) => {
@@ -138,6 +138,16 @@ app.delete('/api/invoices/:id', async (req, res) => {
   }
 });
 
+// ✅ Route جديد لإرجاع آخر رقم فاتورة
+app.get('/api/invoices/last-id', async (req, res) => {
+  try {
+    const lastInvoice = await Invoice.findOne().sort({ id: -1 });
+    const lastId = lastInvoice ? lastInvoice.id : 0;
+    res.json({ lastId });
+  } catch (err) {
+    res.status(500).send('Error fetching last invoice ID');
+  }
+});
 
 // Serve static files (your frontend)
 app.use(express.static('public'));
