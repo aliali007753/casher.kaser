@@ -104,6 +104,10 @@ app.post('/api/invoices', async (req, res) => {
     if (err.code === 11000) { // Duplicate key error (invoice ID)
       return res.status(409).send('Invoice with this ID already exists.');
     }
+    // هذا الجزء مهم لمعرفة سبب الفشل في التحقق من صحة النموذج (validation)
+    if (err.name === 'ValidationError') {
+        return res.status(400).send(err.message); // Bad Request for validation errors
+    }
     res.status(500).send(err.message);
   }
 });
@@ -130,7 +134,9 @@ app.get('/api/invoices', async (req, res) => {
 
 app.delete('/api/invoices/:id', async (req, res) => {
   try {
-    const deletedInvoice = await Invoice.findOneAndDelete({ id: req.params.id });
+    // استخدم parseFloat هنا للتأكد من أن ID هو رقم قبل استعلام قاعدة البيانات
+    const invoiceId = parseFloat(req.params.id); 
+    const deletedInvoice = await Invoice.findOneAndDelete({ id: invoiceId });
     if (!deletedInvoice) return res.status(404).send('Invoice not found.');
     res.status(204).send();
   } catch (err) {
@@ -138,18 +144,20 @@ app.delete('/api/invoices/:id', async (req, res) => {
   }
 });
 
-// ✅ Route جديد لإرجاع آخر رقم فاتورة
+// ✅ Route لإرجاع آخر رقم فاتورة (تم التعديل)
 app.get('/api/invoices/last-id', async (req, res) => {
   try {
     const lastInvoice = await Invoice.findOne().sort({ id: -1 });
     const lastId = lastInvoice ? lastInvoice.id : 0;
-    res.json({ lastId });
+    const nextInvoiceId = lastId + 1; // ✅ تم حساب رقم الفاتورة التالي
+    res.json({ nextInvoiceId }); // ✅ تم إرسال nextInvoiceId
   } catch (err) {
     res.status(500).send('Error fetching last invoice ID');
   }
 });
 
 // Serve static files (your frontend)
+// تأكد أن مسار ملفات الفرونت إند هو 'public' أو قم بتغييره ليناسب مجلدك
 app.use(express.static('public'));
 
 app.listen(PORT, () => {
